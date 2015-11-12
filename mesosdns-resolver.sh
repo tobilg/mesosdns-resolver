@@ -62,6 +62,9 @@ esac
 shift # past argument or value
 done
 
+# Check if dig is installed
+command -v dig >/dev/null 2>&1 || { echo >&2 "This script requires dig but it's not installed. Aborting."; exit 3; }
+
 # Evaluation for the service name
 if [[ ! -z "${_serviceName}" ]]; then
   IFS="."

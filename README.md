@@ -2,6 +2,10 @@
 
 A bash script to resolve Mesos DNS SRV record to actual host:port endpoints
 
+## Prerequisites
+
+`dig` has to be available on the system.
+
 ## Installation
 
 Run `curl -cL https://raw.githubusercontent.com/tobilg/mesosdns-resolver/master/mesosdns-resolver.sh > /usr/bin/mesosdns-resolver.sh && chmod +x /usr/bin/mesosdns-resolver.sh` to install the script locally.
