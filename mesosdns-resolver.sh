@@ -84,7 +84,7 @@ fi
 IFS=$'\n'
 
 # Use dig to get the answer section of the service name
-_digResult=`dig +nocmd ${queryServiceName} SRV +noall +answer ${_server}`
+_digResult=`dig +nocmd +tcp ${queryServiceName} SRV +noall +answer ${_server}`
 
 # If result from above is empty, the service name cannot be resolved. Exit script.
 if [[ -z "${_digResult}" ]]; then
@@ -113,7 +113,7 @@ IFS=$'\n' read -d '' -r -a sortedNodes < <(printf '%s\n' "${nodes[@]}" | sort)
 IFS=$'\n'
 
 # Read response as array
-dnsIps=($(dig +nocmd ${queryServiceName} SRV +noall +additional ${_server}))
+dnsIps=($(dig +nocmd +tcp ${queryServiceName} SRV +noall +additional ${_server}))
 
 # Set to space
 IFS=' '
