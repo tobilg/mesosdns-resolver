@@ -17,7 +17,7 @@ A bash script to resolve Mesos DNS SRV records to actual host:port endpoints
 Options:
 --------
 -sn <service name> or --serviceName <service name> : (MANDATORY) The Mesos DNS service name (such as web.marathon.mesos).
--s <server ip> or --server <server ip>             : Can be use to query a specify DNS server. Uses local server by default.
+-s <server ip> or --server <server ip>             : Can be use to query a specify DNS server.
 -a or --all                                        : If specified, all endpoints of a service will be returned,
                                                      (with standard separator "comma").
 -pi <port index> or --portIndex <port index>       : By default, the first port (index 0) will be returned.
@@ -56,14 +56,11 @@ case $key in
   _all=YES
   ;;
   *)
-            # unknown option
+        # unknown option
   ;;
 esac
 shift # past argument or value
 done
-
-# Check if dig is installed
-command -v dig >/dev/null 2>&1 || { echo >&2 "This script requires dig but it's not installed. Aborting."; exit 3; }
 
 # Evaluation for the service name
 if [[ ! -z "${_serviceName}" ]]; then
@@ -79,8 +76,8 @@ if [[ ! -z "${_serviceName}" ]]; then
     fi
   done
 else
-  errcho "Please supply a service name"
-  exit 2
+  echo "Please supply a service name"
+  exit 1
 fi
 
 # Set IFS to newline
@@ -96,26 +93,27 @@ if [[ -z "${_digResult}" ]]; then
 fi
 
 # If dig gave us a result, service name exists. Continue.
-dnshosts=($_digResult)
+dnsHosts=($_digResult)
 
 # Set IFS to space
-IFS=' '
+IFS=" "
 
-# Iterate dnshosts and extract node info as new array
-for index in "${!dnshosts[@]}"
+# Iterate dnsHosts and extract node info as new array
+for index in "${!dnsHosts[@]}"
 do
-  linearray=(${dnshosts[index]})
-  nodes+=("${linearray[7]}|${linearray[6]}")
+  # Filter tabs characters (Mesos DNS bug?)
+  lineArray=($(echo "${dnsHosts[index]}" | tr "\t" " " | tr -s " "))
+  nodes+=("${lineArray[7]}|${lineArray[6]}")
 done
 
 # Sort nodes
-IFS=$'\n' read -d '' -r -a sorted_nodes < <(printf '%s\n' "${nodes[@]}" | sort)
+IFS=$'\n' read -d '' -r -a sortedNodes < <(printf '%s\n' "${nodes[@]}" | sort)
 
 # Set to newline
 IFS=$'\n'
 
 # Read response as array
-dnsips=($(dig +nocmd ${queryServiceName} SRV +noall +additional ${_server}))
+dnsIps=($(dig +nocmd ${queryServiceName} SRV +noall +additional ${_server}))
 
 # Set to space
 IFS=' '
@@ -123,16 +121,13 @@ IFS=' '
 #associative array
 declare -A serviceNodes
 
-# Iterate dnsips and extract node info as new array
-for index in "${!dnsips[@]}"
+# Iterate dnsIps and extract node info as new array
+for index in "${!dnsIps[@]}"
 do
-  iplinearray=(${dnsips[index]})
-
-  if [ "${#iplinearray[@]}" -eq "4" ]; then
-    serviceNodes["${iplinearray[0]}"]="${iplinearray[3]}"
-  else
-    serviceNodes["${iplinearray[0]}"]="${iplinearray[4]}"
-  fi
+  # Filter tabs characters (Mesos DNS bug?)
+  iplineArray=($(echo "${dnsIps[index]}" | tr "\t" " " | tr -s " "))
+  # Assign endpoint to serviceNode
+  serviceNodes["${iplineArray[0]}"]="${iplineArray[4]}"
 done
 
 # Keep the state
@@ -144,10 +139,10 @@ lastNodeName=""
 declare -A endpoints
 
 # Loop through nodes array and assign port indices and IP addresses
-for index in "${!sorted_nodes[@]}"
+for index in "${!sortedNodes[@]}"
 do
-  _hostname=$(echo "${sorted_nodes[index]}" | cut -d "|" -f 1)
-  _port=$(echo "${sorted_nodes[index]}" | cut -d "|" -f 2)
+  _hostname=$(echo "${sortedNodes[index]}" | cut -d "|" -f 1)
+  _port=$(echo "${sortedNodes[index]}" | cut -d "|" -f 2)
   _ip=${serviceNodes[$_hostname]}
 
   if [ "${_hostname}" = "${lastNodeName}" ]; then
@@ -180,7 +175,6 @@ do
     # Check if --all parameter was set
     if [[ "${_all}" = "YES" ]]; then
 
-      # First entry need no separator prefix
       if [[ "${_counter}" -eq "1" ]]; then
         _output="${endpoints[$key]}"
       else
