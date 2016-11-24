@@ -28,6 +28,7 @@ Options:
 -sn <service name> or --serviceName <service name> : (MANDATORY) The Mesos DNS service name (such as web.marathon.mesos).
 -s <server ip> or --server <server ip>             : Can be use to query a specify DNS server.
 -d or --drill                                      : Use drill instead of dig (for Alpine Linux)
+-m or --mesosSuffix                                : The mesos DNS suffix (support for service groups).
 -a or --all                                        : If specified, all endpoints of a service will be returned,
                                                      (with standard separator "comma").
 -pi <port index> or --portIndex <port index>       : By default, the first port (index 0) will be returned.
@@ -59,6 +60,10 @@ HELPEND
   -d|--drill)
   _drill=YES
   ;;
+  -m|--mesosSuffix)
+  _suffix="$2"
+  shift # past argument
+  ;;
   *)
         # unknown option
   ;;
@@ -67,7 +72,25 @@ shift # past argument or value
 done
 
 # Evaluation for the service name
-if [[ ! -z "${_serviceName}" ]]; then
+if [[ ! -z "${_serviceName}" && ! -z "${_suffix}" ]]; then
+  IFS="."
+  nameArray=( $_serviceName )
+  suffixArray=( $_suffix )
+  queryServiceName="_"
+  nameSections=${#nameArray[@]}
+  suffixSections=${#suffixArray[@]}
+  significantSections=$(( nameSections - suffixSections - 1 ))
+  for index in "${!nameArray[@]}"
+  do
+    if [ "${index}" -eq "${significantSections}" ]; then
+      queryServiceName="${queryServiceName}${nameArray[index]}._tcp"
+    elif [ "${index}" -lt "${significantSections}" ]; then
+      queryServiceName="${queryServiceName}${nameArray[index]}."
+    else
+      queryServiceName="${queryServiceName}.${nameArray[index]}"
+    fi
+  done
+elif [[ ! -z "${_serviceName}" ]]; then
   IFS="."
   nameArray=( $_serviceName )
   queryServiceName="_"

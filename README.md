@@ -21,6 +21,7 @@ Options:
 - `-sn <service name>` or `--serviceName <service name>` : (MANDATORY) The Mesos DNS service name (such as web.marathon.mesos).  
 - `-s <server ip>` or `--server <server ip>` : Can be use to query a specify DNS server. Uses local server by default.  
 - `-d` or `--drill` : Use drill instead of dig for name resolution, as dig is not available in Alpine Linux (and it has a smaller footprint).  
+- `-m` or `--mesosSuffix` : To resolve service groups the name suffix is needed (defaults to marathon.mesos in mesos DNS), keep in mind that the script does NOT set a default for backwards compatibility reasons.  
 - `-a` or `--all` : If specified, all endpoints of a service will be returned, with standard separator "comma".  
 - `-pi <port index>` or `--portIndex <port index>` : By default, the first port (index 0) will be returned. If another port index shall be used, specify the index.  
 - `-se <separator>` or `--separator <separator>` : The separator to be used then concatenating multiple endpoint results (only usable together with the --all parameter).  
