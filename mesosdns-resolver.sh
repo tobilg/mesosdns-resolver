@@ -9,22 +9,7 @@ _server=""
 errcho(){ >&2 echo $@; }
 
 # Help
-read -d '' _help <<- HELPEND
-mesosdns-resolver.sh
---------------------
-A bash script to resolve Mesos DNS SRV records to actual host:port endpoints
-
-Options:
---------
--sn <service name> or --serviceName <service name> : (MANDATORY) The Mesos DNS service name (such as web.marathon.mesos).
--s <server ip> or --server <server ip>             : Can be use to query a specify DNS server.
--a or --all                                        : If specified, all endpoints of a service will be returned,
-                                                     (with standard separator "comma").
--pi <port index> or --portIndex <port index>       : By default, the first port (index 0) will be returned.
-                                                     If another port index shall be used, specify the index.
--se <separator> or --separator <separator>         : The separator to be used then concatenating multiple endpoint results
-                                                     (only usable together with the --all parameter).
-HELPEND
+#read _help << HELPEND
 
 # Parse command line arguments
 while [[ $# > 0 ]]
@@ -33,7 +18,23 @@ key="$1"
 
 case $key in
   -h|--help)
-  echo "$_help"
+  cat << HELPEND
+mesosdns-resolver.sh
+--------------------
+A bash script to resolve Mesos DNS SRV records to actual host:port endpoints
+
+Options:
+--------
+-sn <service name> or --serviceName <service name> : (MANDATORY) The Mesos DNS service name (such as web.marathon.mesos).
+-s <server ip> or --server <server ip>             : Can be use to query a specify DNS server.
+-d or --drill                                      : Use drill instead of dig (for Alpine Linux)
+-a or --all                                        : If specified, all endpoints of a service will be returned,
+                                                     (with standard separator "comma").
+-pi <port index> or --portIndex <port index>       : By default, the first port (index 0) will be returned.
+                                                     If another port index shall be used, specify the index.
+-se <separator> or --separator <separator>         : The separator to be used then concatenating multiple endpoint results
+                                                     (only usable together with the --all parameter).
+HELPEND
   exit 0
   ;;
   -sn|--serviceName)
@@ -54,6 +55,9 @@ case $key in
   ;;
   -a|--all)
   _all=YES
+  ;;
+  -d|--drill)
+  _drill=YES
   ;;
   *)
         # unknown option
@@ -83,8 +87,12 @@ fi
 # Set IFS to newline
 IFS=$'\n'
 
-# Use dig to get the answer section of the service name
-_digResult=`dig +nocmd +tcp ${queryServiceName} SRV +noall +answer ${_server}`
+if [[ -z "${_drill}" ]]; then
+  # Use dig to get the answer section of the service name
+  _digResult=`dig +nocmd +tcp ${queryServiceName} SRV +noall +answer ${_server}`
+else
+  _digResult=`drill -t ${queryServiceName} SRV ${_server} | grep "^_" | grep SRV`
+fi
 
 # If result from above is empty, the service name cannot be resolved. Exit script.
 if [[ -z "${_digResult}" ]]; then
@@ -113,7 +121,11 @@ IFS=$'\n' read -d '' -r -a sortedNodes < <(printf '%s\n' "${nodes[@]}" | sort)
 IFS=$'\n'
 
 # Read response as array
-dnsIps=($(dig +nocmd +tcp ${queryServiceName} SRV +noall +additional ${_server}))
+if [[ -z "${_drill}" ]]; then
+  dnsIps=($(dig +nocmd +tcp ${queryServiceName} SRV +noall +additional ${_server}))
+else
+  dnsIps=($(drill -t ${queryServiceName} SRV ${_server} | grep "^[a-zA-Z0-9_]" | grep -v SRV))
+fi
 
 # Set to space
 IFS=' '
